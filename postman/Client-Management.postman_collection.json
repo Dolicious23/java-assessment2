@@ -1,0 +1,140 @@
+{
+  "info": {
+    "_postman_id": "b7c2f4a1-3d6e-4c1a-9f2b-6a1e0d5c8b74",
+    "name": "Client Management API",
+    "description": "Spring Boot client management service.\n\nRun the app first (see README.md), then run this collection top-to-bottom: the Create request stores the new client id in a collection variable that later requests reuse.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "clientId", "value": "1" },
+    { "key": "keyword", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Create Client (POST)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "const body = pm.response.json();",
+              "pm.test('id is returned', () => pm.expect(body.id).to.be.a('number'));",
+              "pm.collectionVariables.set('clientId', body.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Request-Id", "value": "postman-create-001" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman Client {{$timestamp}}\",\n  \"email\": \"postman.{{$timestamp}}@example.com\",\n  \"phone\": \"+60123-456789\",\n  \"company\": \"Acme Sdn Bhd\",\n  \"city\": \"Kuala Lumpur\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/v1/clients", "host": ["{{baseUrl}}"], "path": ["api", "v1", "clients"] },
+        "description": "Insert a new client. Requires @Transactional insert. Payload is validated; duplicate email returns 409."
+      }
+    },
+    {
+      "name": "2. Get Client by Id (GET)",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/clients/{{clientId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "clients", "{{clientId}}"]
+        },
+        "description": "Retrieve one client by id. Uses @Transactional(readOnly = true)."
+      }
+    },
+    {
+      "name": "3. Update Client (PUT)",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-Request-Id", "value": "postman-update-001" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman Client Updated\",\n  \"email\": \"postman.updated.{{$timestamp}}@example.com\",\n  \"phone\": \"+60123-000000\",\n  \"company\": \"Acme Sdn Bhd (HQ)\",\n  \"city\": \"Petaling Jaya\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/clients/{{clientId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "clients", "{{clientId}}"]
+        },
+        "description": "Update an existing client. Requires @Transactional update."
+      }
+    },
+    {
+      "name": "4. List Clients - Paginated (GET)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test('page size is 10', () => pm.expect(body.size).to.eql(10));",
+              "pm.test('items at most 10', () => pm.expect(body.items.length).to.be.at.most(10));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/clients?page=0&keyword={{keyword}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "clients"],
+          "query": [
+            { "key": "page", "value": "0", "description": "Zero-based page index. Fixed page size = 10." },
+            { "key": "keyword", "value": "{{keyword}}", "description": "Optional search on name, company or city." }
+          ]
+        },
+        "description": "Paginated list, always 10 records per page. Try page=1 for the next page, or set the keyword variable to filter."
+      }
+    },
+    {
+      "name": "5. Client Insight - Nested 3rd Party Call (GET)",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/clients/{{clientId}}/insight",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "clients", "{{clientId}}", "insight"]
+        },
+        "description": "Postman -> this API -> jsonplaceholder.typicode.com. This API loads the client from MSSQL, then calls two third-party endpoints and merges the result."
+      }
+    }
+  ]
+}
